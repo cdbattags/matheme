@@ -230,6 +230,14 @@ export const fileIconMapping: Record<string, FileIconEntry> = {
     iconRef: 'catppuccin:circle-ci',
     fileNames: ['circle.yml'],
   },
+  'cloud': {
+    iconRef: 'catppuccin:folder-cloud',
+    fileExtensions: ['cloud'],
+  },
+  'cloudf': {
+    iconRef: 'catppuccin:folder-cloud',
+    fileExtensions: ['cloudf'],
+  },
   'clojure': {
     iconRef: 'catppuccin:clojure',
     fileExtensions: ['clj', 'cljs', 'cljc'],

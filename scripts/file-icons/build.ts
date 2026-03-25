@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import {optimize} from 'svgo';
-import {vsciFiles, vsciFolders} from './vsci-data';
+import {vsciFiles, type VsciFileEntry, vsciFolders} from './vsci-data';
 import {fileIconMapping, folderIconMapping} from './mapping';
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -12,6 +12,12 @@ const CUSTOM_DIR = path.join(OUT_DIR, 'custom');
 const VSCI_ICONS = path.join(ROOT, 'vendor/vscode-icons/icons');
 
 const MONO_ACCENT = '#A0A0B8';
+
+// Custom file entries not covered by vscode-icons
+const CUSTOM_FILES: VsciFileEntry[] = [
+  {icon: 'cloud', extensions: ['cloud'], fileNames: [], languageIds: []},
+  {icon: 'cloudf', extensions: ['cloudf'], fileNames: [], languageIds: []},
+];
 
 const CATPPUCCIN_PALETTE = new Set([
   '#f4dbd6', '#f0c6c6', '#f5bde6', '#c6a0f6', '#ed8796', '#ee99a0',
@@ -134,7 +140,7 @@ function buildBrandTheme(): ThemeJson {
   }
 
   let fileCount = 0;
-  for (const entry of vsciFiles) {
+  for (const entry of [...vsciFiles, ...CUSTOM_FILES]) {
     const svgSrc = `file_type_${entry.icon}.svg`;
     if (!copyVsci(svgSrc, entry.icon)) {
       continue;
