@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "no-debugger": "error",
+    "no-console": "warn",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "no-implicit-coercion": "warn",
+    "no-throw-literal": "error",
+    "no-self-compare": "error",
+    "no-template-curly-in-string": "warn",
+    "prefer-template": "warn",
+
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-non-null-assertion": "off",
+    "typescript/consistent-type-imports": "warn",
+    "typescript/no-namespace": "off",
+    "typescript/array-type": ["warn", { "default": "array-simple" }],
+
+    "unicorn/prefer-node-protocol": "warn",
+    "unicorn/no-array-for-each": "warn",
+    "unicorn/prefer-array-flat-map": "warn",
+    "unicorn/prefer-string-slice": "warn",
+    "unicorn/no-lonely-if": "warn",
+    "unicorn/prefer-ternary": "off",
+    "unicorn/no-null": "off",
+
+    "import/no-duplicates": "error"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "dist/",
+    "build/",
+    "node_modules/",
+    "community-themes/",
+    "*.json"
+  ]
+}

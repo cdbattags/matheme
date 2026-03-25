@@ -1,0 +1,33 @@
+{
+  "javascript.validate.enable": false,
+  "files.exclude": {
+    "**/.git": true,
+    ".git-crypt": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/*.js.map": true
+  },
+  "files.associations": {
+    "*.template": "json"
+  },
+  "html.format.preserveNewLines": true,
+  "[markdown]": {
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.tabSize": 4,
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+  "xo.enable": false,
+  "editor.formatOnSave": false,
+  "eslint.enable": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.codeActionsOnSaveTimeout": 2000
+}
