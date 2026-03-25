@@ -30,6 +30,7 @@
     "cleanup": "rimraf build && rimraf dist",
     "build:ts": "tsgo -p tsconfig.json && cpy 'dist/**' build && cpy material-theme.config.json build",
     "build:generate-themes": "node dist/generator/cli.js",
+    "sync:vscode-icons": "tsx scripts/file-icons/sync-vscode-icons.ts",
     "package": "vsce package",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix"

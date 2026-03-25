@@ -4,6 +4,7 @@
 .eslintrc
 .github/
 .gitignore
+.gitmodules
 .gulp/
 .pnpm-store/
 .vscode-test/
@@ -21,6 +22,7 @@ src/
 test/
 types/
 typings/
+vendor/
 *.log
 package-lock.json
 pnpm-lock.yaml

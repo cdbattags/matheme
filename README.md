@@ -37,4 +37,5 @@ Customize any color via VS Code's `workbench.colorCustomizations` and `editor.to
 
 ## Attribution
 
-Originally inspired by [Material Theme for VS Code](https://github.com/material-theme/vsc-material-theme) (Apache 2.0).
+- Originally inspired by [Material Theme for VS Code](https://github.com/material-theme/vsc-material-theme) (Apache 2.0).
+- File icons from [vscode-icons](https://github.com/vscode-icons/vscode-icons) (MIT / CC BY-SA).

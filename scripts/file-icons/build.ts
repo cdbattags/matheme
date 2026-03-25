@@ -1,46 +1,25 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import {optimize} from 'svgo';
+import {vsciFiles, vsciFolders} from './vsci-data';
 import {fileIconMapping, folderIconMapping} from './mapping';
-import {brandColors} from './brand-colors';
 
 const ROOT = path.resolve(__dirname, '../..');
 const OUT_DIR = path.join(ROOT, 'fileicons');
 const ICONS_DIR = path.join(OUT_DIR, 'icons');
 const ICONS_MONO_DIR = path.join(OUT_DIR, 'icons-mono');
 const CUSTOM_DIR = path.join(OUT_DIR, 'custom');
+const VSCI_ICONS = path.join(ROOT, 'vendor/vscode-icons/icons');
 
 const MONO_ACCENT = '#A0A0B8';
 
-const CATPPUCCIN_PALETTE: Record<string, string> = {
-  '#f4dbd6': 'rosewater',
-  '#f0c6c6': 'flamingo',
-  '#f5bde6': 'pink',
-  '#c6a0f6': 'mauve',
-  '#ed8796': 'red',
-  '#ee99a0': 'maroon',
-  '#f5a97f': 'peach',
-  '#eed49f': 'yellow',
-  '#a6da95': 'green',
-  '#8bd5ca': 'teal',
-  '#91d7e3': 'sky',
-  '#7dc4e4': 'sapphire',
-  '#8aadf4': 'blue',
-  '#b7bdf8': 'lavender',
-  '#cad3f5': 'subtext1',
-  '#b8c0e0': 'subtext0',
-  '#a5adcb': 'overlay2',
-  '#939ab7': 'overlay1',
-  '#8087a2': 'overlay0',
-  '#6e738d': 'surface2',
-  '#5b6078': 'surface1',
-  '#494d64': 'surface0',
-  '#363a4f': 'base',
-  '#24273a': 'mantle',
-  '#1e2030': 'crust',
-};
-
-const PALETTE_HEXES = new Set(Object.keys(CATPPUCCIN_PALETTE));
+const CATPPUCCIN_PALETTE = new Set([
+  '#f4dbd6', '#f0c6c6', '#f5bde6', '#c6a0f6', '#ed8796', '#ee99a0',
+  '#f5a97f', '#eed49f', '#a6da95', '#8bd5ca', '#91d7e3', '#7dc4e4',
+  '#8aadf4', '#b7bdf8', '#cad3f5', '#b8c0e0', '#a5adcb', '#939ab7',
+  '#8087a2', '#6e738d', '#5b6078', '#494d64', '#363a4f', '#24273a',
+  '#1e2030',
+]);
 
 interface ThemeJson {
   hidesExplorerArrows: boolean;
@@ -57,6 +36,18 @@ interface ThemeJson {
   languageIds: Record<string, string>;
 }
 
+function optimizeSvg(svg: string): string {
+  return optimize(svg, {plugins: ['preset-default', 'convertPathData', 'mergePaths']}).data;
+}
+
+function recolorMono(svg: string): string {
+  let result = svg;
+  for (const hex of CATPPUCCIN_PALETTE) {
+    result = result.replaceAll(hex, MONO_ACCENT);
+  }
+  return result;
+}
+
 function loadIconifySvg(iconRef: string): string | null {
   const [setId, iconName] = iconRef.split(':');
   if (!setId || !iconName) {
@@ -71,14 +62,12 @@ function loadIconifySvg(iconRef: string): string | null {
   }
 
   if (!fs.existsSync(jsonPath)) {
-    console.error(`  Icon set not found: ${setId}`);
     return null;
   }
 
   const json = fs.readJsonSync(jsonPath);
   const icon = json.icons[iconName];
   if (!icon) {
-    console.error(`  Icon not found: ${iconRef}`);
     return null;
   }
 
@@ -87,99 +76,7 @@ function loadIconifySvg(iconRef: string): string | null {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">${icon.body}</svg>`;
 }
 
-function optimizeSvg(svg: string): string {
-  const result = optimize(svg, {
-    plugins: [
-      'preset-default',
-      'convertPathData',
-      'mergePaths',
-    ],
-  });
-  return result.data;
-}
-
-function findPaletteColors(svg: string): string[] {
-  const found: string[] = [];
-  const matches = svg.match(/#[0-9a-f]{6}/gi) || [];
-  for (const m of matches) {
-    const lower = m.toLowerCase();
-    if (PALETTE_HEXES.has(lower) && !found.includes(lower)) {
-      found.push(lower);
-    }
-  }
-  return found;
-}
-
-function recolorBrand(svg: string, name: string): string {
-  const brand = brandColors[name];
-  if (!brand) {
-    return svg;
-  }
-
-  const paletteColors = findPaletteColors(svg);
-  if (paletteColors.length === 0) {
-    return svg;
-  }
-
-  let result = svg;
-  // Replace the first (dominant) palette color with brand primary
-  result = result.replaceAll(paletteColors[0], brand.primary);
-
-  // Replace the second palette color with brand secondary (or a lighter variant of primary)
-  if (paletteColors.length >= 2) {
-    const secondary = brand.secondary || lighten(brand.primary, 0.3);
-    result = result.replaceAll(paletteColors[1], secondary);
-  }
-
-  return result;
-}
-
-function recolorMono(svg: string): string {
-  let result = svg;
-  for (const hex of PALETTE_HEXES) {
-    result = result.replaceAll(hex, MONO_ACCENT);
-  }
-  return result;
-}
-
-function lighten(hex: string, amount: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const nr = Math.min(255, Math.round(r + (255 - r) * amount));
-  const ng = Math.min(255, Math.round(g + (255 - g) * amount));
-  const nb = Math.min(255, Math.round(b + (255 - b) * amount));
-  return `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb.toString(16).padStart(2, '0')}`;
-}
-
-function loadSvg(name: string, iconRef: string): string | null {
-  const customPath = path.join(CUSTOM_DIR, `${name}.svg`);
-  if (fs.existsSync(customPath)) {
-    return fs.readFileSync(customPath, 'utf-8');
-  }
-  return loadIconifySvg(iconRef);
-}
-
-function writeDualSvg(name: string, iconRef: string): boolean {
-  const raw = loadSvg(name, iconRef);
-  if (!raw) {
-    return false;
-  }
-
-  const optimized = optimizeSvg(raw);
-
-  // Brand version
-  const brandSvg = recolorBrand(optimized, name);
-  fs.writeFileSync(path.join(ICONS_DIR, `${name}.svg`), brandSvg);
-
-  // Mono version
-  const monoSvg = recolorMono(optimized);
-  fs.writeFileSync(path.join(ICONS_MONO_DIR, `${name}.svg`), monoSvg);
-
-  return true;
-}
-
-function buildThemeJson(iconsPrefix: string): ThemeJson {
+function makeThemeJson(): ThemeJson {
   return {
     hidesExplorerArrows: false,
     file: '_file',
@@ -196,18 +93,121 @@ function buildThemeJson(iconsPrefix: string): ThemeJson {
   };
 }
 
-async function build() {
-  console.log('Building file icon theme...');
+// ---------------------------------------------------------------------------
+// Brand theme: vscode-icons SVGs (already multi-colored)
+// ---------------------------------------------------------------------------
+function buildBrandTheme(): ThemeJson {
+  console.log('Building brand theme (vscode-icons)...');
+  const theme = makeThemeJson();
 
   fs.ensureDirSync(ICONS_DIR);
   fs.emptyDirSync(ICONS_DIR);
+
+  function copyVsci(srcName: string, destName: string): boolean {
+    const customPath = path.join(CUSTOM_DIR, `${destName}.svg`);
+    let svg: string;
+    if (fs.existsSync(customPath)) {
+      svg = fs.readFileSync(customPath, 'utf-8');
+    } else {
+      const srcPath = path.join(VSCI_ICONS, srcName);
+      if (!fs.existsSync(srcPath)) {
+        return false;
+      }
+      svg = fs.readFileSync(srcPath, 'utf-8');
+    }
+    fs.writeFileSync(path.join(ICONS_DIR, `${destName}.svg`), optimizeSvg(svg));
+    return true;
+  }
+
+  const defaults: Array<{dest: string; src: string}> = [
+    {dest: '_file', src: 'default_file.svg'},
+    {dest: '_folder', src: 'default_folder.svg'},
+    {dest: '_folder-open', src: 'default_folder_opened.svg'},
+    {dest: '_root', src: 'default_root_folder.svg'},
+    {dest: '_root-open', src: 'default_root_folder_opened.svg'},
+  ];
+
+  for (const d of defaults) {
+    if (copyVsci(d.src, d.dest)) {
+      theme.iconDefinitions[d.dest] = {iconPath: `./icons/${d.dest}.svg`};
+    }
+  }
+
+  let fileCount = 0;
+  for (const entry of vsciFiles) {
+    const svgSrc = `file_type_${entry.icon}.svg`;
+    if (!copyVsci(svgSrc, entry.icon)) {
+      continue;
+    }
+    theme.iconDefinitions[entry.icon] = {iconPath: `./icons/${entry.icon}.svg`};
+    fileCount++;
+
+    for (const ext of entry.extensions) {
+      theme.fileExtensions[ext] = entry.icon;
+    }
+    for (const fn of entry.fileNames) {
+      theme.fileNames[fn] = entry.icon;
+    }
+    for (const lid of entry.languageIds) {
+      theme.languageIds[lid] = entry.icon;
+    }
+  }
+
+  let folderCount = 0;
+  for (const entry of vsciFolders) {
+    const closedSrc = `folder_type_${entry.icon}.svg`;
+    const openSrc = `folder_type_${entry.icon}_opened.svg`;
+    const closedDest = `folder-${entry.icon}`;
+    const openDest = `folder-${entry.icon}-open`;
+
+    if (!copyVsci(closedSrc, closedDest)) {
+      continue;
+    }
+    theme.iconDefinitions[closedDest] = {iconPath: `./icons/${closedDest}.svg`};
+
+    const hasOpen = copyVsci(openSrc, openDest);
+    if (hasOpen) {
+      theme.iconDefinitions[openDest] = {iconPath: `./icons/${openDest}.svg`};
+    }
+    folderCount++;
+
+    for (const fn of entry.folderNames) {
+      theme.folderNames[fn] = closedDest;
+      theme.folderNamesExpanded[fn] = hasOpen ? openDest : closedDest;
+    }
+  }
+
+  const svgCount = fs.readdirSync(ICONS_DIR).filter(f => f.endsWith('.svg')).length;
+  console.log(`  ${fileCount} file icons, ${folderCount} folder icons (${svgCount} SVGs)`);
+  return theme;
+}
+
+// ---------------------------------------------------------------------------
+// Mono theme: Catppuccin icons recolored to single accent
+// ---------------------------------------------------------------------------
+function buildMonoTheme(): ThemeJson {
+  console.log('Building mono theme (catppuccin)...');
+  const theme = makeThemeJson();
+
   fs.ensureDirSync(ICONS_MONO_DIR);
   fs.emptyDirSync(ICONS_MONO_DIR);
 
-  const brandTheme = buildThemeJson('./icons');
-  const monoTheme = buildThemeJson('./icons-mono');
+  function writeMonoSvg(name: string, iconRef: string): boolean {
+    const customPath = path.join(CUSTOM_DIR, `${name}.svg`);
+    let raw: string | null;
+    if (fs.existsSync(customPath)) {
+      raw = fs.readFileSync(customPath, 'utf-8');
+    } else {
+      raw = loadIconifySvg(iconRef);
+    }
+    if (!raw) {
+      return false;
+    }
+    const mono = recolorMono(optimizeSvg(raw));
+    fs.writeFileSync(path.join(ICONS_MONO_DIR, `${name}.svg`), mono);
+    return true;
+  }
 
-  // Default icons
   const defaults = [
     {name: '_file', ref: 'catppuccin:file'},
     {name: '_folder', ref: 'catppuccin:folder'},
@@ -217,95 +217,71 @@ async function build() {
   ];
 
   for (const d of defaults) {
-    if (writeDualSvg(d.name, d.ref)) {
-      brandTheme.iconDefinitions[d.name] = {iconPath: `./icons/${d.name}.svg`};
-      monoTheme.iconDefinitions[d.name] = {iconPath: `./icons-mono/${d.name}.svg`};
+    if (writeMonoSvg(d.name, d.ref)) {
+      theme.iconDefinitions[d.name] = {iconPath: `./icons-mono/${d.name}.svg`};
     }
   }
 
-  // File icons
   let fileCount = 0;
   for (const [name, entry] of Object.entries(fileIconMapping)) {
-    if (!writeDualSvg(name, entry.iconRef)) {
+    if (!writeMonoSvg(name, entry.iconRef)) {
       continue;
     }
-
-    brandTheme.iconDefinitions[name] = {iconPath: `./icons/${name}.svg`};
-    monoTheme.iconDefinitions[name] = {iconPath: `./icons-mono/${name}.svg`};
+    theme.iconDefinitions[name] = {iconPath: `./icons-mono/${name}.svg`};
     fileCount++;
 
     if (entry.fileExtensions) {
       for (const ext of entry.fileExtensions) {
-        brandTheme.fileExtensions[ext] = name;
-        monoTheme.fileExtensions[ext] = name;
+        theme.fileExtensions[ext] = name;
       }
     }
-
     if (entry.fileNames) {
       for (const fn of entry.fileNames) {
-        brandTheme.fileNames[fn] = name;
-        monoTheme.fileNames[fn] = name;
+        theme.fileNames[fn] = name;
       }
     }
-
     if (entry.languageIds) {
       for (const lid of entry.languageIds) {
-        brandTheme.languageIds[lid] = name;
-        monoTheme.languageIds[lid] = name;
+        theme.languageIds[lid] = name;
       }
     }
   }
 
-  // Folder icons
   let folderCount = 0;
   for (const [name, entry] of Object.entries(folderIconMapping)) {
     const closedName = `folder-${name}`;
     const openName = `folder-${name}-open`;
 
-    const closedOk = writeDualSvg(closedName, entry.iconRef);
-    const openOk = writeDualSvg(openName, entry.iconRefOpen);
-
-    if (!closedOk) {
+    if (!writeMonoSvg(closedName, entry.iconRef)) {
       continue;
     }
+    theme.iconDefinitions[closedName] = {iconPath: `./icons-mono/${closedName}.svg`};
 
-    brandTheme.iconDefinitions[closedName] = {iconPath: `./icons/${closedName}.svg`};
-    monoTheme.iconDefinitions[closedName] = {iconPath: `./icons-mono/${closedName}.svg`};
-    if (openOk) {
-      brandTheme.iconDefinitions[openName] = {iconPath: `./icons/${openName}.svg`};
-      monoTheme.iconDefinitions[openName] = {iconPath: `./icons-mono/${openName}.svg`};
+    const hasOpen = writeMonoSvg(openName, entry.iconRefOpen);
+    if (hasOpen) {
+      theme.iconDefinitions[openName] = {iconPath: `./icons-mono/${openName}.svg`};
     }
     folderCount++;
 
     for (const fn of entry.folderNames) {
-      brandTheme.folderNames[fn] = closedName;
-      monoTheme.folderNames[fn] = closedName;
-      brandTheme.folderNamesExpanded[fn] = openOk ? openName : closedName;
-      monoTheme.folderNamesExpanded[fn] = openOk ? openName : closedName;
+      theme.folderNames[fn] = closedName;
+      theme.folderNamesExpanded[fn] = hasOpen ? openName : closedName;
     }
   }
 
-  // Write both theme JSONs
-  fs.writeJsonSync(
-    path.join(OUT_DIR, 'matheme-file-icon-theme.json'),
-    brandTheme,
-    {spaces: 2},
-  );
-  fs.writeJsonSync(
-    path.join(OUT_DIR, 'matheme-file-icon-theme-mono.json'),
-    monoTheme,
-    {spaces: 2},
-  );
+  const svgCount = fs.readdirSync(ICONS_MONO_DIR).filter(f => f.endsWith('.svg')).length;
+  console.log(`  ${fileCount} file icons, ${folderCount} folder icons (${svgCount} SVGs)`);
+  return theme;
+}
 
-  const svgCount = fs.readdirSync(ICONS_DIR).filter(f => f.endsWith('.svg')).length;
-  const brandMapped = Object.keys(brandColors).filter(k => brandTheme.iconDefinitions[k]).length;
-  console.log(`  ${fileCount} file icons, ${folderCount} folder icons`);
-  console.log(`  ${svgCount} SVGs per variant (x2 = ${svgCount * 2} total)`);
-  console.log(`  ${brandMapped} icons with brand colors applied`);
-  console.log(`  ${Object.keys(brandTheme.fileExtensions).length} file extension mappings`);
-  console.log(`  ${Object.keys(brandTheme.fileNames).length} file name mappings`);
-  console.log(`  ${Object.keys(brandTheme.folderNames).length} folder name mappings`);
-  console.log(`  ${Object.keys(brandTheme.languageIds).length} language ID mappings`);
+// ---------------------------------------------------------------------------
+async function build() {
+  const brandTheme = buildBrandTheme();
+  const monoTheme = buildMonoTheme();
+
+  fs.writeJsonSync(path.join(OUT_DIR, 'matheme-file-icon-theme.json'), brandTheme, {spaces: 2});
+  fs.writeJsonSync(path.join(OUT_DIR, 'matheme-file-icon-theme-mono.json'), monoTheme, {spaces: 2});
+
   console.log('Done.');
 }
 
